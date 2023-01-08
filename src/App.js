@@ -58,17 +58,31 @@ class App extends Component {
   }
 
   calculateFaceLocation = (data) => {
-    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
-    const image = document.getElementById('inputimage');
+    const clarifaiFace = JSON.parse(data, null, 2).outputs[0].data.regions[0]
+     .region_info.bounding_box;
+    const image = document.getElementById("inputimage");
     const width = Number(image.width);
     const height = Number(image.height);
-    return  {
+    return {
       leftCol: clarifaiFace.left_col * width,
       topRow: clarifaiFace.top_row * height,
-      rightCol: width - (clarifaiFace.right_col * width),
-      bottomRow: height - (clarifaiFace.bottom_row * height)
-    }
+      rightCol: width - clarifaiFace.right_col * width,
+      bottomRow: height - clarifaiFace.bottom_row * height,
+    };
   }
+
+  // calculateFaceLocation = (data) => {
+  //   const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
+  //   const image = document.getElementById('inputimage');
+  //   const width = Number(image.width);
+  //   const height = Number(image.height);
+  //   return  {
+  //     leftCol: clarifaiFace.left_col * width,
+  //     topRow: clarifaiFace.top_row * height,
+  //     rightCol: width - (clarifaiFace.right_col * width),
+  //     bottomRow: height - (clarifaiFace.bottom_row * height)
+  //   }
+  // }
   
 
   displayFaceBox = (box) => {
@@ -80,34 +94,67 @@ class App extends Component {
   }
 
   onButtonSubmit = () => {
-    this.setState({imageUrl: this.state.input});
-              fetch('https://facerecognition-api-fzim.onrender.com/imageurl', {
-                method: 'post',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                  input: this.state.input
-              })
-            })
-              .then(response => response.json())
-              .then(response => {
-                if (response) {
-                  fetch('https://facerecognition-api-fzim.onrender.com/image', {
-                    method: 'put',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                      id: this.state.user.id
-                    })
-                  })
-                    .then(response => response.json())
-                    .then(count => {
-                      this.setState(Object.assign(this.state.user, { entries: count }))
-                    })
-                    .catch(console.log)
-              }
-            this.displayFaceBox(this.calculateFaceLocation(response))
-          })
-          .catch(err => console.log('woops'));
-    }
+    const raw = JSON.stringify({
+      user_app_id : {
+        user_id: "aqtpwt25qqga",
+        app_id: "facerecognition-react"
+      },
+      inputs: [
+        {
+          data: {
+            image: {
+              url: this.state.input
+            },
+          },
+        },
+      ],
+    });
+ 
+    fetch(
+       "https://api.clarifai.com/v2/models/f76196b43bbd45c99b4f3cd8e8b40a8a/outputs",
+       {
+         method: "POST",
+         headers: {
+           Accept: "application/json",
+           Authorization: "acdcaf9db49947e7b4f26850ff286c25",
+         },
+         body: raw,
+       }
+     )
+     .then((response) => response.text())
+     .then((result) => this.displayFaceBox(this.calculateFaceLocation(result)))
+     .catch((error) => console.log("error", error));
+  }
+
+  // onButtonSubmit = () => {
+  //   this.setState({imageUrl: this.state.input});
+  //             fetch('https://facerecognition-api-fzim.onrender.com/imageurl', {
+  //               method: 'post',
+  //               headers: {'Content-Type': 'application/json'},
+  //               body: JSON.stringify({
+  //                 input: this.state.input
+  //             })
+  //           })
+  //             .then(response => response.json())
+  //             .then(response => {
+  //               if (response) {
+  //                 fetch('https://facerecognition-api-fzim.onrender.com/image', {
+  //                   method: 'put',
+  //                   headers: {'Content-Type': 'application/json'},
+  //                   body: JSON.stringify({
+  //                     id: this.state.user.id
+  //                   })
+  //                 })
+  //                   .then(response => response.json())
+  //                   .then(count => {
+  //                     this.setState(Object.assign(this.state.user, { entries: count }))
+  //                   })
+  //                   .catch(console.log)
+  //             }
+  //           this.displayFaceBox(this.calculateFaceLocation(response))
+  //         })
+  //         .catch(err => console.log('woops'));
+  //   }
     
 
   // const raw = JSON.stringify({
