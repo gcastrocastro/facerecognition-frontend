@@ -1,6 +1,4 @@
 import React from 'react';
-// import './Signin.css';
-
 
 // you make this a class so it's a 'smart' component, having a state that changes
 class Signin extends React.Component {
@@ -35,9 +33,6 @@ class Signin extends React.Component {
                     this.props.onRouteChange('home')
                 }
             })
-
-        // this is to check if the local host is receiving the login info
-        // console.log(this.state);
     }
 
     render() {
