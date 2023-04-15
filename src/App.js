@@ -9,6 +9,11 @@ import ParticlesBg from 'particles-bg'
 import Signin from './components/Signin/Signin';
 import Register from './components/Register/register';
 
+const PAT = 'acdcaf9db49947e7b4f26850ff286c25';
+const USER_ID = 'aqtpwt25qqga';    
+const APP_ID = 'facerecognition-react';
+const MODEL_ID = 'face-detection';
+
 const initialState = {
   input: '',
   imageUrl: '',
@@ -39,21 +44,12 @@ class App extends Component {
   }})
   }
 
-  // componentDidMount() {
-  //   fetch('http://localhost:3000')
-  //         .then(response => response.json())
-
-  //         // these two do the same thing, so we optimize 
-  //         // .then(data => console.log(data))
-  //         .then(console.log)
-  // }
-
   onRouteChange = (route) => {
-        if (route === 'signin') {
-          this.setState(initialState)
-        } else if (route === 'home') {
-          this.setState({isSignedIn: true})
-        }
+    if (route === 'signin') {
+      this.setState(initialState)
+    } else if (route === 'home') {
+      this.setState({isSignedIn: true})
+    }
     this.setState({route: route});
   }
 
@@ -68,8 +64,7 @@ class App extends Component {
       rightCol: width - (clarifaiFace.right_col * width),
       bottomRow: height - (clarifaiFace.bottom_row * height)
     }
-  }
-  
+  }  
 
   displayFaceBox = (box) => {
     this.setState({box: box});
@@ -80,34 +75,58 @@ class App extends Component {
   }
 
   onButtonSubmit = () => {
-    this.setState({imageUrl: this.state.input});
-              fetch('https://facerecognition-api-fzim.onrender.com/imageurl', {
-                method: 'post',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                  input: this.state.input
-              })
-            })
-              .then(response => response.json())
-              .then(response => {
-                if (response) {
-                  fetch('https://facerecognition-api-fzim.onrender.com/image', {
-                    method: 'put',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                      id: this.state.user.id
-                    })
-                  })
-                    .then(response => response.json())
-                    .then(count => {
-                      this.setState(Object.assign(this.state.user, { entries: count }))
-                    })
-                    .catch(console.log)
-              }
-            this.displayFaceBox(this.calculateFaceLocation(response))
+    this.setState({ imageUrl: this.state.input, loading: true });
+    const raw = JSON.stringify({
+      user_app_id: {
+        user_id: USER_ID,
+        app_id: APP_ID,
+      },
+      inputs: [
+        {
+          data: {
+            image: {
+              url: this.state.input,
+            },
+          },
+        },
+      ]
+    });
+
+    const requestOptions = {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: "Key " + PAT,
+      },
+      body: raw,
+    };
+
+    fetch(
+      "https://api.clarifai.com/v2/models/" + MODEL_ID + "/outputs",
+      requestOptions
+    )
+      .then((response) => response.json())
+      .then((result) => {
+        this.setState({ loading: false });
+        if (result.outputs[0].data) {
+          this.displayFaceBox(this.calculateFaceLocation(result));
+          fetch("https://facerecognition-api-fzim.onrender.com/image", {
+            method: "put",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: this.state.user.id,
+            }),
           })
-          .catch(err => console.log(err));
-    }
+            .then((response) => response.json())
+            .then((count) => {
+              this.setState(Object.assign(this.state.user, { entries: count }));
+            });
+        } else {
+          window.alert("Not a valid Image URL.");
+        }
+      })
+      .catch((error) => console.log("error", error));
+  };
 
   render() {
     const { isSignedIn, imageUrl, route, box } = this.state;
